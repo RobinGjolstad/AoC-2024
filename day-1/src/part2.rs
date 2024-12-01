@@ -8,15 +8,18 @@ pub fn process(input: &str) -> usize {
     let lines: Vec<&str> = lines.map(|line| line.trim()).collect();
 
     // Split each line on whitespace, and save the two numbers in two separate lists.
-    let mut first_num_list: Vec<usize> = Vec::new();
-    let mut second_num_list: Vec<usize> = Vec::new();
-    lines.iter().for_each(|line| {
-        let parts: Vec<&str> = line.split_whitespace().collect();
-        let (first_num_str, second_num_str) = parts.split_at(1);
+    let (first_num_list, second_num_list): (Vec<usize>, Vec<usize>) = lines
+        .par_iter()
+        .map(|line| {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            let (first_num_str, second_num_str) = parts.split_at(1);
 
-        first_num_list.push(first_num_str.first().unwrap().parse().unwrap());
-        second_num_list.push(second_num_str.first().unwrap().parse().unwrap());
-    });
+            (
+                first_num_str.first().unwrap().parse::<usize>().unwrap(),
+                second_num_str.first().unwrap().parse::<usize>().unwrap(),
+            )
+        })
+        .unzip();
 
     // For each number in the first list, find the number of times it appears in the second list.
     let num_count: Vec<(usize, usize)> = first_num_list

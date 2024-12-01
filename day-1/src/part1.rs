@@ -1,4 +1,6 @@
-pub fn process(input: &str) -> u32 {
+use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
+
+pub fn process(input: &str) -> usize {
     // Split the input into lines.
     let lines = input.lines();
 
@@ -6,15 +8,18 @@ pub fn process(input: &str) -> u32 {
     let lines: Vec<&str> = lines.map(|line| line.trim()).collect();
 
     // Split each line on whitespace, and save the two numbers in two separate lists.
-    let mut first_num_list: Vec<u32> = Vec::new();
-    let mut second_num_list: Vec<u32> = Vec::new();
-    lines.iter().for_each(|line| {
-        let parts: Vec<&str> = line.split_whitespace().collect();
-        let (first_num_str, second_num_str) = parts.split_at(1);
+    let (mut first_num_list, mut second_num_list): (Vec<usize>, Vec<usize>) = lines
+        .par_iter()
+        .map(|line| {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            let (first_num_str, second_num_str) = parts.split_at(1);
 
-        first_num_list.push(first_num_str.first().unwrap().parse().unwrap());
-        second_num_list.push(second_num_str.first().unwrap().parse().unwrap());
-    });
+            (
+                first_num_str.first().unwrap().parse::<usize>().unwrap(),
+                second_num_str.first().unwrap().parse::<usize>().unwrap(),
+            )
+        })
+        .unzip();
 
     // Sort each list in ascending order.
     first_num_list.sort();
@@ -24,9 +29,7 @@ pub fn process(input: &str) -> u32 {
     let sum = first_num_list
         .iter()
         .zip(second_num_list)
-        .map(|(first, second)| {
-            first.abs_diff(second)
-        })
+        .map(|(first, second)| first.abs_diff(second))
         .sum();
 
     sum
