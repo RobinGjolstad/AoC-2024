@@ -1,4 +1,4 @@
-pub fn process(input: Into<String>) -> u32 {
+pub fn process(input: &str) -> usize {
     0
 }
 
@@ -8,6 +8,9 @@ mod tests {
 
     #[test]
     fn test_process() {
-        assert_eq!(process("".to_string()), 0);
+        let input = r#"
+        
+        "#;
+        assert_eq!(process(input), 0);
     }
 }
