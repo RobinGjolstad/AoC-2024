@@ -1,8 +1,9 @@
 [package]
-name = "template"
+name = "day-2"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 # Inherit dependencies from workspace
 # <dependency>.workspace = true
+rayon.workspace = true
