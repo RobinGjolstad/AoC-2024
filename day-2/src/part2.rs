@@ -141,28 +141,25 @@ fn is_report_safe(numbers: &[usize], attempts_remaining: usize) -> bool {
             }
         }
 
-        if !iteration_safe {
-            // Try once again with each number in the current attempt removed.
-            let mut numbers_with_first_number_removed: Vec<usize> = numbers.to_vec();
-            numbers_with_first_number_removed.remove(first_number_index);
-            let first_result =
-                is_report_safe(&numbers_with_first_number_removed, attempts_remaining - 1);
-            println!("Result from reattempting with first number removed: {first_result}.");
-            println!("List was: {:?}", numbers_with_first_number_removed);
+        if !iteration_safe && (attempts_remaining - 1 > 0) {
+            // Try once again with each number in the list removed to check if we can bounce back
+            // from a single issue.
 
-            let mut numbers_with_second_number_removed: Vec<usize> = numbers.to_vec();
-            numbers_with_second_number_removed.remove(second_number_index);
-            let second_result =
-                is_report_safe(&numbers_with_second_number_removed, attempts_remaining - 1);
-            println!("Result from reattempting with second number removed: {second_result}.");
-            println!("List was: {:?}", numbers_with_second_number_removed);
+            println!("Retrying with original list: {:?}", numbers);
 
-            if first_result || second_result {
-                // One of the attempts with a member removed succeeded, so we are safe.
+            let any_success = (0..numbers.len())
+                .collect::<Vec<usize>>()
+                .iter()
+                .any(|index| {
+                    let mut vec_with_num_removed: Vec<usize> = numbers.to_vec();
+                    vec_with_num_removed.remove(*index);
+
+                    // Only allow a single attempt. No infinite recursion here!
+                    is_report_safe(&vec_with_num_removed, 1)
+                });
+
+            if any_success {
                 return true;
-            } else {
-                // Neither of the attempts succeeded, so no safe variant exists.
-                return false;
             }
         }
 
