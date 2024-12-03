@@ -141,9 +141,11 @@ fn is_report_safe(numbers: &[usize], attempts_remaining: usize) -> bool {
             }
         }
 
-        if !iteration_safe {
+        if !iteration_safe && (attempts_remaining - 1 > 0) {
             // Try once again with each number in the list removed to check if we can bounce back
             // from a single issue.
+
+            println!("Retrying with original list: {:?}", numbers);
 
             let any_success = (0..numbers.len())
                 .collect::<Vec<usize>>()
@@ -155,6 +157,10 @@ fn is_report_safe(numbers: &[usize], attempts_remaining: usize) -> bool {
                     // Only allow a single attempt. No infinite recursion here!
                     is_report_safe(&vec_with_num_removed, 1)
                 });
+
+            return any_success;
+        } else if !iteration_safe {
+            return false;
         }
 
         first_number_index += 1;
