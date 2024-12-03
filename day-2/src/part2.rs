@@ -158,9 +158,9 @@ fn is_report_safe(numbers: &[usize], attempts_remaining: usize) -> bool {
                     is_report_safe(&vec_with_num_removed, 1)
                 });
 
-            if any_success {
-                return true;
-            }
+            return any_success;
+        } else if !iteration_safe {
+            return false;
         }
 
         first_number_index += 1;
