@@ -1,0 +1,10 @@
+[package]
+name = "day-3"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+nom.workspace = true
+rayon.workspace = true
+# Inherit dependencies from workspace
+# <dependency>.workspace = true

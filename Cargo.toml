@@ -9,4 +9,5 @@ default-members = ["day-*"]
 
 [workspace.dependencies]
 # Add dependencies for all days here
+nom = "7.1.3"
 rayon = "1.10.0"
