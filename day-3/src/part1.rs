@@ -58,14 +58,48 @@ fn find_all_mul_numbers(input: &str) -> Vec<(isize, isize)> {
                 let numbers = (numbers[0], numbers[1]);
                 resulting_vec.push(numbers);
 
+                if input.is_empty() {
+                    // We've fully parsed the string.
+                    break;
+                }
+
                 // "start" a new test.
                 result = find_mul_numbers(input)
             }
 
-            Err(e) => match e {
-                nom::Err::Error(e) => todo!(),
-                _ => {
-                    // Unrecoverable errors.
+            Err(ref e) => match e {
+                nom::Err::Error(e) => {
+                    // Failed parsing, probably a false positive of some sort.
+                    // Might have consumed a `mul` but found incorrect info after this.
+                    // Retry from current position.
+                    let (input, _error_type) = (e.input, e.code);
+
+                    // Do a peek at the remaining input and look for `mul`.
+                    // If there are none left, stop.
+                    let peek_res: IResult<&str, &str> =
+                        nom::combinator::peek(take_until("mul"))(input);
+                    if peek_res.is_err() {
+                        println!("There are no more `mul`s left.");
+                        break;
+                    }
+                    // if error_type == nom::error::ErrorKind::Tag && !input.contains("mul") {
+                    // if error_type == nom::error::ErrorKind::TakeUntil {
+                    // We got a tag-error and there are no more `mul` left in the input.
+                    // This means that we are finished.
+                    //     println!("`Tag` error occurred and no mor `mul` can be found. We're done.");
+                    //     break;
+                    // }
+
+                    result = find_mul_numbers(input);
+                }
+                nom::Err::Incomplete(needed) => {
+                    // Not enough data.
+                    eprintln!("Failed parsing data. Not enough data left to match.\nWould need {:?} more characters to complete.", needed);
+                    break;
+                }
+                nom::Err::Failure(e) => {
+                    // Unrecoverable error.
+                    eprintln!("Unrecoverable parsing error: {}", e);
                     break;
                 }
             },
