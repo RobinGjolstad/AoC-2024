@@ -21,16 +21,13 @@ pub fn process(input: &str) -> usize {
         .map(|line| {
             // Find all mul-pairs
             let num_pair_list = find_all_mul_numbers(line);
-            dbg!(&num_pair_list);
             let line_sum = num_pair_list
                 .par_iter()
                 .map(|(n1, n2)| {
                     // Multiply the numbers
-                    println!("{n1} x {n2}");
                     n1 * n2
                 })
                 .sum::<isize>();
-            dbg!(&line_sum);
 
             line_sum
         })
@@ -71,7 +68,6 @@ fn find_all_mul_numbers(input: &str) -> Vec<(isize, isize)> {
                 nom::Err::Error(e) => {
                     // Failed parsing, probably a false positive of some sort.
                     // Might have consumed a `mul` but found incorrect info after this.
-                    // Retry from current position.
                     let (input, _error_type) = (e.input, e.code);
 
                     // Do a peek at the remaining input and look for `mul`.
@@ -82,14 +78,9 @@ fn find_all_mul_numbers(input: &str) -> Vec<(isize, isize)> {
                         println!("There are no more `mul`s left.");
                         break;
                     }
-                    // if error_type == nom::error::ErrorKind::Tag && !input.contains("mul") {
-                    // if error_type == nom::error::ErrorKind::TakeUntil {
-                    // We got a tag-error and there are no more `mul` left in the input.
-                    // This means that we are finished.
-                    //     println!("`Tag` error occurred and no mor `mul` can be found. We're done.");
-                    //     break;
-                    // }
 
+                    // There are still `mul`s left.
+                    // Retry from current position.
                     result = find_mul_numbers(input);
                 }
                 nom::Err::Incomplete(needed) => {
@@ -113,10 +104,8 @@ fn find_mul_numbers(input: &str) -> IResult<&str, Vec<isize>> {
     // Optionally skip until "mul"
     // `captures` contains anything _before_ the tag, if anything.
     let (input, captures) = take_until("mul")(input)?;
-    dbg!(&input, &captures);
 
     let (input, _) = tag("mul")(input)?;
-    dbg!(&input);
 
     // Capture numbers inside ()
     let (input, inside_parens) = delimited(
@@ -124,7 +113,6 @@ fn find_mul_numbers(input: &str) -> IResult<&str, Vec<isize>> {
         many1(nom::branch::alt((tag("-"), tag(","), alphanumeric1))),
         tag(")"),
     )(input)?;
-    dbg!(&input, &inside_parens);
 
     // Parse as isize
     let numbers: Vec<isize> = inside_parens
