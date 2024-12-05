@@ -1,61 +1,28 @@
 use std::cell::Cell;
 
 use nom::{
-    branch::alt,
-    bytes::complete::{tag, take_till, take_until},
-    character::{
-        complete::{alphanumeric1, anychar, digit1},
-        is_alphanumeric, is_digit,
-    },
+    bytes::complete::{tag, take_until},
+    character::complete::{self, *},
     combinator::peek,
-    error::Error,
-    multi::{many0, many1, many_till},
     sequence::{delimited, separated_pair},
     IResult,
 };
-use rayon::{
-    prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator},
-    str::ParallelString,
-};
+use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 
 pub fn process(input: &str) -> usize {
-    // Iterate over all lines in file.
-    let lines: Vec<&str> = input
-        .lines()
-        .filter_map(|line| {
-            if line.is_empty() {
-                None
-            } else {
-                Some(line.trim())
-            }
-        })
-        .collect();
-    let sum: isize = lines
+    //
+    let input_sum: i64 = find_all_mul_numbers(input)
         .par_iter()
-        .enumerate()
-        .map(|(index, line)| {
-            println!("Parsing numbers for line: {index}");
-            // Find all mul-pairs
-            let num_pair_list = find_all_mul_numbers(line);
-            let line_sum = num_pair_list
-                .par_iter()
-                .map(|(n1, n2)| {
-                    // Multiply the numbers
-                    n1 * n2
-                })
-                .sum::<isize>();
-
-            println!("Sum for line {index} is: {line_sum}");
-            line_sum
-        })
+        .map(|(n1, n2)| n1 * n2)
         .sum();
 
-    sum.try_into()
+    input_sum
+        .try_into()
         .expect("Converting from signed to unsigned should be fine.")
 }
 
-fn find_all_mul_numbers(input: &str) -> Vec<(isize, isize)> {
-    let mut resulting_vec: Vec<(isize, isize)> = Vec::new();
+fn find_all_mul_numbers(input: &str) -> Vec<(i64, i64)> {
+    let mut resulting_vec: Vec<(i64, i64)> = Vec::new();
 
     let mul_enabled: Cell<bool> = Cell::new(true);
 
@@ -108,32 +75,14 @@ fn find_all_mul_numbers(input: &str) -> Vec<(isize, isize)> {
                         } else {
                             // Look for "do".
                             // Beware of false positive from "don't".
-                            let do_peek_res: IResult<&str, &str> = peek(take_until("do"))(input);
-                            let dont_peek_res: IResult<&str, &str> =
-                                peek(take_until("don't"))(input);
-                            let input: &str = match (do_peek_res, dont_peek_res) {
-                                (Ok((do_input, do_consumed)), Ok((dont_input, dont_consumed))) => {
-                                    // We found both.
-                                    // Were they the same?
-                                    if do_consumed == dont_consumed {
-                                        // It was a false positive. we only found a "don't"
-                                        // Consume the "don't" and try again.
-                                        todo!()
-                                    } else {
-                                        // Mismatch.
-                                        // This can only occur if the "do" was found first.
-                                        // We can proceed.
-                                        todo!()
-                                    }
+                            let do_peek_res: IResult<&str, &str> = peek(take_until("do()"))(input);
+                            match do_peek_res {
+                                Ok(_) => {
+                                    // We found do.
+                                    // We can continue.
                                 }
-                                (Ok(_), Err(_)) => {
-                                    // We found a "do", but no "don't".
-                                    // We can proceed.
-                                    todo!()
-                                }
-                                _ => {
-                                    // We found neither, or some weird combination.
-                                    // Nothing left to do.
+                                Err(_) => {
+                                    // There were no "do()" left when "mul" is disabled, so we're done.
                                     break;
                                 }
                             };
@@ -159,7 +108,7 @@ fn find_all_mul_numbers(input: &str) -> Vec<(isize, isize)> {
     resulting_vec
 }
 
-fn find_mul_numbers<'a>(input: &'a str, mul_enabled: &Cell<bool>) -> IResult<&'a str, Vec<isize>> {
+fn find_mul_numbers<'a>(input: &'a str, mul_enabled: &Cell<bool>) -> IResult<&'a str, Vec<i64>> {
     // If multiplication is disabled, scan for "do".
     // If we find "do", change value of `mul enabled` and proceed to next steps.
     //
@@ -169,25 +118,13 @@ fn find_mul_numbers<'a>(input: &'a str, mul_enabled: &Cell<bool>) -> IResult<&'a
 
     let input = if !mul_enabled.get() {
         // We must find "do" before we can do anything else.
-        let (input, _captures) = take_until("do")(input)?;
-
-        // Check if it's a false positive for "don't".
-        let peek_res: IResult<&str, &str> = peek(tag("don't"))(input);
-        match peek_res {
-            Ok(_) => {
-                // This was a false positive for a "do".
-                // Let's eat the "don't" and return empty.
-                let (input, _) = tag("don't")(input)?;
-                return Ok((input, vec![]));
-            }
-            Err(_) => {
-                // This was a real "do".
-                // Carry on.
-            }
-        }
+        let (input, _captures) = take_until("do()")(input)?;
 
         // We found "do", so let's grab it and proceed.
-        let (input, _) = tag("do")(input)?;
+        let (input, _) = tag("do()")(input)?;
+
+        // Update the enable state
+        mul_enabled.set(true);
 
         // Now we can proceed.
         input
@@ -200,10 +137,10 @@ fn find_mul_numbers<'a>(input: &'a str, mul_enabled: &Cell<bool>) -> IResult<&'a
     // If only one exists, that's the one we'll work with.
     // If neither exist, propagate an error, preferrably the one with the longest remaining input.
     let mul_result: IResult<&str, &str> = take_until("mul")(input);
-    let dont_result: IResult<&str, &str> = take_until("don't")(input);
+    let dont_result: IResult<&str, &str> = take_until("don't()")(input);
 
     // If one of the results is Err, we can assume that one doesn't exist.
-    let (input, captures) = match (mul_result, dont_result) {
+    let (input, _captures) = match (mul_result, dont_result) {
         (Ok((mul_input, mul_capture)), Ok((dont_input, dont_capture))) => {
             // Find the one with the shortest capture and return that one's input.
             if mul_capture.len() <= dont_capture.len() {
@@ -211,6 +148,8 @@ fn find_mul_numbers<'a>(input: &'a str, mul_enabled: &Cell<bool>) -> IResult<&'a
                 (mul_input, mul_capture)
             } else {
                 // We found "don't" first.
+                // Let's eat it.
+                let (dont_input, _) = tag("don't()")(dont_input)?;
                 // Update `mul_enabled` and return.
                 mul_enabled.set(false);
                 return Ok((dont_input, vec![]));
@@ -222,6 +161,8 @@ fn find_mul_numbers<'a>(input: &'a str, mul_enabled: &Cell<bool>) -> IResult<&'a
         }
         (Err(_), Ok((dont_input, _dont_capture))) => {
             // We found "don't".
+            // Let's eat it.
+            let (dont_input, _) = tag("don't()")(dont_input)?;
             // Update `mul_enabled` and return.
             mul_enabled.set(false);
             return Ok((dont_input, vec![]));
@@ -233,24 +174,16 @@ fn find_mul_numbers<'a>(input: &'a str, mul_enabled: &Cell<bool>) -> IResult<&'a
         }
     };
 
-    //dbg!(&input, &captures);
-
     let (input, _) = tag("mul")(input)?;
-    // dbg!(&input);
 
     // Capture numbers inside ()
     let (input, inside_parens) = delimited(
         tag("("),
-        many1(nom::branch::alt((tag("-"), tag(","), alphanumeric1))),
+        separated_pair(complete::i64, complete::char(','), complete::i64),
         tag(")"),
     )(input)?;
-    // dbg!(&input, &inside_parens);
 
-    // Parse as isize
-    let numbers: Vec<isize> = inside_parens
-        .par_iter()
-        .filter_map(|str| str.parse::<isize>().ok())
-        .collect();
+    let numbers = vec![inside_parens.0, inside_parens.1];
 
     Ok((input, numbers))
 }
@@ -337,7 +270,7 @@ mod tests {
 
     #[test]
     fn find_mul_in_string_starting_with_dont_finds_no_numbers() {
-        let input = "don'tmul(1,2)";
+        let input = "don't()mul(1,2)";
         let mul_enabled = Cell::new(true);
         let (_remainder, numbers) = find_mul_numbers(input, &mul_enabled).unwrap();
 
@@ -347,12 +280,12 @@ mod tests {
 
     #[test]
     fn find_mul_in_string_with_dont_trailing_finds_the_numbers() {
-        let input = "mul(1,2)don't";
+        let input = "mul(1,2)don't()";
         let _a = Cell::new(true);
         let (remainder, numbers) = find_mul_numbers(input, &_a).unwrap();
 
         assert_eq!(numbers.len(), 2);
-        assert!(remainder.contains("don't"));
+        assert!(remainder.contains("don't()"));
         assert_eq!(numbers[0], 1);
         assert_eq!(numbers[1], 2);
     }
@@ -368,7 +301,7 @@ mod tests {
 
     #[test]
     fn find_mul_in_string_when_disabled_works_if_it_is_preceded_by_do() {
-        let input = "domul(1,2)";
+        let input = "do()mul(1,2)";
         let mul_enabled = Cell::new(false);
         let (_remainder, numbers) = find_mul_numbers(input, &mul_enabled).unwrap();
 
@@ -379,12 +312,21 @@ mod tests {
 
     #[test]
     fn find_mul_in_string_when_disabled_fails_if_it_is_preceded_by_dont() {
-        let input = "don'tmul(1,2)";
+        let input = "don't()mul(1,2)";
         let mul_enabled = Cell::new(false);
-        let (remainder, numbers) = find_mul_numbers(input, &mul_enabled).unwrap();
+        let result = find_mul_numbers(input, &mul_enabled);
 
-        assert!(numbers.is_empty());
-        assert!(remainder.contains("mul(1,2)"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn find_mul_with_multiple_do_dont_over_several_lines_yields_the_correct_result() {
+        let input = r#"sdfadfmul(1,2)ølajsddo()øladsf98mul(1,2)lasd
+don't()asdfløjmul(1,2)ljøkadsfmul(1,2)ølahlsg
+øiagsdo()p4ttqpomul(1,2)povasidon't()oøahvsdmul(1,2)"#;
+        let numbers = find_all_mul_numbers(input);
+
+        assert_eq!(numbers.len(), 3);
     }
 }
 
