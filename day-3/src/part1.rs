@@ -1,12 +1,8 @@
 use nom::{
-    bytes::complete::{tag, take_till, take_until},
-    character::{
-        complete::{alphanumeric1, anychar, digit1},
-        is_alphanumeric, is_digit,
-    },
-    error::Error,
-    multi::{many0, many1, many_till},
-    sequence::{delimited, separated_pair},
+    bytes::complete::{tag, take_until},
+    character::complete::alphanumeric1,
+    multi::many1,
+    sequence::delimited,
     IResult,
 };
 use rayon::{
@@ -103,7 +99,7 @@ fn find_all_mul_numbers(input: &str) -> Vec<(isize, isize)> {
 fn find_mul_numbers(input: &str) -> IResult<&str, Vec<isize>> {
     // Optionally skip until "mul"
     // `captures` contains anything _before_ the tag, if anything.
-    let (input, captures) = take_until("mul")(input)?;
+    let (input, _captures) = take_until("mul")(input)?;
 
     let (input, _) = tag("mul")(input)?;
 
