@@ -2,7 +2,7 @@ use std::cell::Cell;
 
 use nom::{
     bytes::complete::{tag, take_until},
-    character::complete::{self, *},
+    character::complete::{self},
     combinator::peek,
     sequence::{delimited, separated_pair},
     IResult,

@@ -1,9 +1,6 @@
 use std::collections::HashSet;
 
-use rayon::{
-    iter::IntoParallelIterator,
-    prelude::{IntoParallelRefIterator, ParallelIterator},
-};
+use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 
 const SAFE_LIMIT: usize = 3;
 
@@ -54,6 +51,7 @@ fn get_numbers_from_input(input: &str) -> Vec<Vec<usize>> {
     numbers
 }
 
+#[allow(dead_code)]
 fn number_of_duplicates_in_list(list: &[usize]) -> usize {
     let mut unique_number_set = HashSet::new();
     list.iter()
