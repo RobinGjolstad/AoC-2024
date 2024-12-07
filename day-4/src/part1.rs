@@ -160,6 +160,7 @@ mod grid {
     }
 
     fn scan_for_pattern_down(input: &[&str], pattern: &str) -> u32 {
+        println!("Scanning down.");
         let mut matches_found: u32 = 0;
 
         // Iterate through the input and gradually compare the columns
@@ -167,7 +168,7 @@ mod grid {
             for row in 0..input.len() {
                 // Check each row down a column and gradually compare it to the pattern.
 
-                let mut pattern_matched = true;
+                let mut pattern_matched = None;
 
                 for (pat_idx, pat_ch) in pattern.chars().enumerate() {
                     if input
@@ -176,15 +177,21 @@ mod grid {
                     {
                         // Character matched.
                         // Continue to the next one.
+                        println!("input({},{}) == pattern({})", row, column, pat_idx);
+                        if (pat_idx + 1) == pattern.len() {
+                            // We matched on the last char of the pattern.
+                            println!("Full pattern matched.");
+                            pattern_matched = Some(true);
+                        }
                     } else {
                         // We didn't match when comparing with the pattern.
                         // Try to move on in a new row.
-                        pattern_matched = false;
+                        pattern_matched = Some(false);
                         break;
                     }
                 }
 
-                if pattern_matched {
+                if pattern_matched.is_some_and(|matched| matched) {
                     println!("Scanning from ({},{}) found match down", row, column);
                     matches_found += 1;
                 }
@@ -195,6 +202,7 @@ mod grid {
     }
 
     fn scan_for_pattern_up(input: &[&str], pattern: &str) -> u32 {
+        println!("Scanning up.");
         let mut matches_found: u32 = 0;
 
         // Iterate through the input and gradually compare the columns
@@ -202,7 +210,7 @@ mod grid {
             for row in 0..input.len() {
                 // Check each row down a column and gradually compare it to the pattern.
 
-                let mut pattern_matched = true;
+                let mut pattern_matched = None;
 
                 for (pat_idx, pat_ch) in pattern.chars().enumerate() {
                     let row_idx = match usize::checked_sub(row, pat_idx) {
@@ -217,15 +225,21 @@ mod grid {
                     {
                         // Character matched.
                         // Continue to the next one.
+                        println!("input({},{}) == pattern({})", row_idx, col_idx, pat_idx);
+                        if (pat_idx + 1) == pattern.len() {
+                            // We matched on the last char of the pattern.
+                            println!("Full pattern matched.");
+                            pattern_matched = Some(true);
+                        }
                     } else {
                         // We didn't match when comparing with the pattern.
                         // Try to move on in a new row.
-                        pattern_matched = false;
+                        pattern_matched = Some(false);
                         break;
                     }
                 }
 
-                if pattern_matched {
+                if pattern_matched.is_some_and(|matched| matched) {
                     println!("Scanning from ({},{}) found match up", row, column);
                     matches_found += 1;
                 }
@@ -236,6 +250,7 @@ mod grid {
     }
 
     fn scan_for_pattern_up_right(input: &[&str], pattern: &str) -> u32 {
+        println!("Scanning up-right.");
         let mut matches_found: u32 = 0;
 
         // Iterate through the input and gradually compare the columns
@@ -243,7 +258,7 @@ mod grid {
             for row in 0..input.len() {
                 // Check each row down a column and gradually compare it to the pattern.
 
-                let mut pattern_matched = true;
+                let mut pattern_matched = None;
 
                 for (pat_idx, pat_ch) in pattern.chars().enumerate() {
                     let row_idx = match usize::checked_sub(row, pat_idx) {
@@ -257,15 +272,21 @@ mod grid {
                     {
                         // Character matched.
                         // Continue to the next one.
+                        println!("input({},{}) == pattern({})", row_idx, col_idx, pat_idx);
+                        if (pat_idx + 1) == pattern.len() {
+                            // We matched on the last char of the pattern.
+                            println!("Full pattern matched.");
+                            pattern_matched = Some(true);
+                        }
                     } else {
                         // We didn't match when comparing with the pattern.
                         // Try to move on in a new row.
-                        pattern_matched = false;
+                        pattern_matched = Some(false);
                         break;
                     }
                 }
 
-                if pattern_matched {
+                if pattern_matched.is_some_and(|matched| matched) {
                     println!("Scanning from ({},{}) found match up-right", row, column);
                     matches_found += 1;
                 }
@@ -276,6 +297,7 @@ mod grid {
     }
 
     fn scan_for_pattern_up_left(input: &[&str], pattern: &str) -> u32 {
+        println!("Scanning up-left.");
         let mut matches_found: u32 = 0;
 
         // Iterate through the input and gradually compare the columns
@@ -283,7 +305,7 @@ mod grid {
             for row in 0..input.len() {
                 // Check each row down a column and gradually compare it to the pattern.
 
-                let mut pattern_matched = true;
+                let mut pattern_matched = None;
 
                 for (pat_idx, pat_ch) in pattern.chars().enumerate() {
                     let row_idx = match usize::checked_sub(row, pat_idx) {
@@ -300,15 +322,21 @@ mod grid {
                     {
                         // Character matched.
                         // Continue to the next one.
+                        println!("input({},{}) == pattern({})", row_idx, col_idx, pat_idx);
+                        if (pat_idx + 1) == pattern.len() {
+                            // We matched on the last char of the pattern.
+                            println!("Full pattern matched.");
+                            pattern_matched = Some(true);
+                        }
                     } else {
                         // We didn't match when comparing with the pattern.
                         // Try to move on in a new row.
-                        pattern_matched = false;
+                        pattern_matched = Some(false);
                         break;
                     }
                 }
 
-                if pattern_matched {
+                if pattern_matched.is_some_and(|matched| matched) {
                     println!("Scanning from ({},{}) found match up-left", row, column);
                     matches_found += 1;
                 }
@@ -319,6 +347,7 @@ mod grid {
     }
 
     fn scan_for_pattern_down_left(input: &[&str], pattern: &str) -> u32 {
+        println!("Scanning down-left.");
         let mut matches_found: u32 = 0;
 
         // Iterate through the input and gradually compare the columns
@@ -326,7 +355,7 @@ mod grid {
             for row in 0..input.len() {
                 // Check each row down a column and gradually compare it to the pattern.
 
-                let mut pattern_matched = true;
+                let mut pattern_matched = None;
 
                 for (pat_idx, pat_ch) in pattern.chars().enumerate() {
                     let row_idx = row + pat_idx;
@@ -340,15 +369,21 @@ mod grid {
                     {
                         // Character matched.
                         // Continue to the next one.
+                        println!("input({},{}) == pattern({})", row_idx, col_idx, pat_idx);
+                        if (pat_idx + 1) == pattern.len() {
+                            // We matched on the last char of the pattern.
+                            println!("Full pattern matched.");
+                            pattern_matched = Some(true);
+                        }
                     } else {
                         // We didn't match when comparing with the pattern.
                         // Try to move on in a new row.
-                        pattern_matched = false;
+                        pattern_matched = Some(false);
                         break;
                     }
                 }
 
-                if pattern_matched {
+                if pattern_matched.is_some_and(|matched| matched) {
                     println!("Scanning from ({},{}) found match down-left", row, column);
                     matches_found += 1;
                 }
@@ -359,6 +394,7 @@ mod grid {
     }
 
     fn scan_for_pattern_down_right(input: &[&str], pattern: &str) -> u32 {
+        println!("Scanning down-right.");
         let mut matches_found: u32 = 0;
 
         // Iterate through the input and gradually compare the columns
@@ -366,7 +402,7 @@ mod grid {
             for row in 0..input.len() {
                 // Check each row down a column and gradually compare it to the pattern.
 
-                let mut pattern_matched = true;
+                let mut pattern_matched = None;
 
                 for (pat_idx, pat_ch) in pattern.chars().enumerate() {
                     let row_idx = row + pat_idx;
@@ -377,15 +413,21 @@ mod grid {
                     {
                         // Character matched.
                         // Continue to the next one.
+                        println!("input({},{}) == pattern({})", row_idx, col_idx, pat_idx);
+                        if (pat_idx + 1) == pattern.len() {
+                            // We matched on the last char of the pattern.
+                            println!("Full pattern matched.");
+                            pattern_matched = Some(true);
+                        }
                     } else {
                         // We didn't match when comparing with the pattern.
                         // Try to move on in a new row.
-                        pattern_matched = false;
+                        pattern_matched = Some(false);
                         break;
                     }
                 }
 
-                if pattern_matched {
+                if pattern_matched.is_some_and(|matched| matched) {
                     println!("Scanning from ({},{}) found match down-right", row, column);
                     matches_found += 1;
                 }
