@@ -5,5 +5,7 @@ edition = "2021"
 
 [dependencies]
 rstest.workspace = true
+nom.workspace = true
+nom-supreme.workspace = true
 # Inherit dependencies from workspace
 # <dependency>.workspace = true
