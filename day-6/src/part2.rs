@@ -1,4 +1,4 @@
-use std::{collections::HashSet, hash::Hash};
+use std::collections::HashSet;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Position {
@@ -69,12 +69,18 @@ fn move_position(pos: Position, direction: Direction) -> Option<Position> {
             let y = pos.y.checked_sub(1);
             y.map(|y| Position { x: pos.x, y })
         }
-        Direction::Down => Some(Position { x: pos.x, y: pos.y + 1 }),
+        Direction::Down => Some(Position {
+            x: pos.x,
+            y: pos.y + 1,
+        }),
         Direction::Left => {
             let x = pos.x.checked_sub(1);
             x.map(|x| Position { x, y: pos.y })
         }
-        Direction::Right => Some(Position { x: pos.x + 1, y: pos.y }),
+        Direction::Right => Some(Position {
+            x: pos.x + 1,
+            y: pos.y,
+        }),
     }
 }
 
@@ -84,10 +90,12 @@ fn is_within_bounds(pos: Position, grid: &[&str]) -> bool {
 
 /// Predict the path of the guard starting from the given position and direction
 /// until it hits an obstacle or goes out of bounds.
-fn predict_guard_path(start_position: Position, direction: Direction, grid: &[&str]) -> (Path, Hinderance) {
-    let mut visited_positions = Path {
-        steps: vec![],
-    };
+fn predict_guard_path(
+    start_position: Position,
+    direction: Direction,
+    grid: &[&str],
+) -> (Path, Hinderance) {
+    let mut visited_positions = Path { steps: vec![] };
     let mut current_position = start_position;
 
     loop {
@@ -95,7 +103,10 @@ fn predict_guard_path(start_position: Position, direction: Direction, grid: &[&s
             return (visited_positions, Hinderance::OutOfBounds);
         }
 
-        let current_char = grid[current_position.y].chars().nth(current_position.x).unwrap();
+        let current_char = grid[current_position.y]
+            .chars()
+            .nth(current_position.x)
+            .unwrap();
         if current_char == '#' {
             return (visited_positions, Hinderance::Obstacle);
         }
@@ -110,7 +121,65 @@ fn predict_guard_path(start_position: Position, direction: Direction, grid: &[&s
         } else {
             return (visited_positions, Hinderance::OutOfBounds);
         };
+    }
+}
 
+/// Walk the guard from `pos` in `direction` until an infinite loop is detected or until a maximum
+/// of iterations has been exceeded.
+fn walk_until_loop(
+    pos: Position,
+    direction: Direction,
+    grid: &[&str],
+    max_iterations: usize,
+) -> Result<Step, usize> {
+    //
+
+    let mut direction = direction;
+    let mut current_position = pos;
+    let mut visited_positions = Vec::new();
+    let mut iterations_remaining = max_iterations;
+    loop {
+        if iterations_remaining == 0 {
+            // We've been walking for too long.
+            // println!("Iteration limit exhausted.");
+            return Err(visited_positions.len());
+        }
+        let (path, hinderance) = predict_guard_path(current_position, direction, grid);
+
+        // Check if the guard has visited the same position, in the same direction.
+        // If so we have an infinite loop.
+        if visited_positions
+            .iter()
+            .rev()
+            .any(|step| path.steps.contains(step))
+        {
+            // println!(
+            //     "Infinite loop detected, breaking. \n Last position: {:?}",
+            //     current_position
+            // );
+            return Ok(*path.steps.last().expect("There should be an element."));
+        }
+
+        visited_positions.extend(path.steps);
+        if hinderance == Hinderance::OutOfBounds {
+            // println!(
+            //     "Leaving the grid at {:?}",
+            //     visited_positions.last().unwrap().position
+            // );
+            return Err(visited_positions.len());
+        }
+
+        // Update the current position to the last position in the path.
+        if let Some(last_step) = visited_positions.last() {
+            current_position = last_step.position;
+        } else {
+            // No more steps.
+            return Err(visited_positions.len());
+        }
+
+        // Change direction.
+        direction = direction.next();
+        iterations_remaining -= 1;
     }
 }
 
@@ -118,6 +187,10 @@ pub fn process(input: &str) -> usize {
     // Find start position.
     let grid: Vec<&str> = input.lines().collect();
     let start_position = find_start_position(&grid);
+
+    // First walk through the map once.
+    // Then we will gradually insert obstacles throughout the path taken, then check if a loop is
+    // detected.
 
     let mut direction = Direction::Up;
     let mut current_position = start_position;
@@ -127,17 +200,24 @@ pub fn process(input: &str) -> usize {
 
         // Check if the guard has visited the same position, in the same direction.
         // If so we have an infinite loop.
-        if visited_positions.iter().rev().take(path.steps.len()).any(|step| path.steps.contains(step)) {
-            println!("Infinite loop detected, breaking. \n Last position: {:?}", current_position);
+        if visited_positions
+            .iter()
+            .rev()
+            .any(|step| path.steps.contains(step))
+        {
+            println!(
+                "Infinite loop detected, breaking. \n Last position: {:?}",
+                current_position
+            );
             break; // Infinite loop detected.
         }
 
-        // Remove the last position since it is contained in the new list.
-        visited_positions.pop();
-
         visited_positions.extend(path.steps);
         if hinderance == Hinderance::OutOfBounds {
-            println!("Leaving the grid at {:?}", visited_positions.last().unwrap().position);
+            println!(
+                "Leaving the grid at {:?}",
+                visited_positions.last().unwrap().position
+            );
             break;
         }
 
@@ -152,10 +232,47 @@ pub fn process(input: &str) -> usize {
         direction = direction.next();
     }
 
-    // Count the distinct positions visited.
-    let distinct_positions: HashSet<Position> = visited_positions.iter().map(|step| step.position).collect();
+    // Now we will gradually insert obstacles for every slot the guard has walked and look for
+    // loops.
+    let mut obstacle_positions_causing_loop: Vec<Position> = Vec::new();
+    for pos in visited_positions {
+        // Skip first. No need to insert an obstacle at the start position.
+        if pos.position == start_position && pos.direction == Direction::Up {
+            continue;
+        }
 
-    distinct_positions.len()
+        // Insert an obstacle at the current position.
+        let grid_param: Vec<String> = grid
+            .iter()
+            .enumerate()
+            .map(|(i, row)| {
+                if i == pos.position.y {
+                    // This is the row where we want to insert a symbol.
+                    row.to_string()
+                        .chars()
+                        .enumerate()
+                        .map(|(i, c)| if i == pos.position.x { '#' } else { c })
+                        .collect::<String>()
+                } else {
+                    row.to_string()
+                }
+            })
+            .collect();
+
+        // Rebuild the grid.
+        let grid_param = grid_param
+            .iter()
+            .map(|line| line.as_str())
+            .collect::<Vec<&str>>();
+
+        let loop_res = walk_until_loop(start_position, Direction::Up, &grid_param, 10_000);
+        if loop_res.is_ok() && !obstacle_positions_causing_loop.contains(&pos.position) {
+            //dbg!("Infinite loop detected with this grid:\n{:#?}", grid_param);
+            obstacle_positions_causing_loop.push(pos.position);
+        }
+    }
+
+    obstacle_positions_causing_loop.len()
 }
 
 #[cfg(test)]
@@ -175,7 +292,7 @@ mod tests {
 ........#.
 #.........
 ......#..."#;
-        assert_eq!(process(input), 41);
+        assert_eq!(process(input), 6);
     }
 
     #[rstest]
@@ -183,26 +300,26 @@ mod tests {
         &[".....",
           ".....",
           "..^..",
-          "....."], 
+          "....."],
           Position{x:2, y:2})]
     #[case(
         &[".....",
           ".....",
           ".....",
-          "....^"], 
+          "....^"],
           Position{x:4, y:3})]
     #[case(
         &["^....",
           ".....",
           ".....",
-          "....."], 
+          "....."],
           Position{x:0, y:0})]
     fn test_find_start_position(#[case] input: &[&str], #[case] expected: Position) {
         assert_eq!(find_start_position(input), expected);
     }
 
     #[rstest]
-    #[case(6, Hinderance::Obstacle, Direction::Up, 
+    #[case(6, Hinderance::Obstacle, Direction::Up,
         &["....#.....",
           ".........#",
           "..........",
@@ -213,7 +330,7 @@ mod tests {
           "........#.",
           "#.........",
           "......#..."])]
-    #[case(6, Hinderance::OutOfBounds, Direction::Right, 
+    #[case(6, Hinderance::OutOfBounds, Direction::Right,
         &["....#.....",
           ".........#",
           "..........",
@@ -224,7 +341,7 @@ mod tests {
           "........#.",
           "#.........",
           "......#..."])]
-    #[case(3, Hinderance::Obstacle, Direction::Left, 
+    #[case(3, Hinderance::Obstacle, Direction::Left,
         &["....#.....",
           ".........#",
           "..........",
@@ -235,7 +352,7 @@ mod tests {
           "........#.",
           "#.........",
           "......#..."])]
-    #[case(4, Hinderance::OutOfBounds, Direction::Down, 
+    #[case(4, Hinderance::OutOfBounds, Direction::Down,
         &["....#.....",
           ".........#",
           "..........",
@@ -247,10 +364,10 @@ mod tests {
           "#.........",
           "......#..."])]
     fn test_predict_guard_path(
-            #[case] expected_steps: usize, 
-            #[case] expected_hinderance: Hinderance,  
-            #[case] direction: Direction, 
-            #[case] grid: &[&str]
+        #[case] expected_steps: usize,
+        #[case] expected_hinderance: Hinderance,
+        #[case] direction: Direction,
+        #[case] grid: &[&str],
     ) {
         let start_position = find_start_position(grid);
         let (path, hinderance) = predict_guard_path(start_position, direction, grid);
@@ -291,23 +408,23 @@ mod tests {
     }
 
     /*
-    test-grid
-r#"....#.....
-.........#
-..........
-..#.......
-.......#..
-..........
-.#..^.....
-........#.
-#.........
-......#..."#;
-    */
+        test-grid
+    r#"....#.....
+    .........#
+    ..........
+    ..#.......
+    .......#..
+    ..........
+    .#..^.....
+    ........#.
+    #.........
+    ......#..."#;
+        */
     #[rstest]
     #[case(
-        Position { x: 2, y: 2 },
+        Position { x: 4, y: 6 },
         Direction::Up,
-        Position { x: 2, y: 1 },
+        Position { x: 3, y: 6 },
         &["....#.....",
           ".........#",
           "..........",
@@ -318,17 +435,31 @@ r#"....#.....
           "........#.",
           "#.........",
           "......#..."])]
-    fn test_added_obstacle_causes_loop(#[case] guard_position: Position, #[case] guard_direction: Direction, #[case] obstacle_position: Position, #[case] grid: &[&str]) {
+    fn test_added_obstacle_causes_loop(
+        #[case] guard_position: Position,
+        #[case] guard_direction: Direction,
+        #[case] obstacle_position: Position,
+        #[case] grid: &[&str],
+    ) {
         // Add an obstacle to the grid.
-        let mut grid = grid.iter().map(|line| line.to_string()).collect::<Vec<String>>();
-        grid[obstacle_position.y] = grid[obstacle_position.y].chars().enumerate().map(|(i, c)| if i == obstacle_position.x { '#' } else { c }).collect::<String>();
+        let mut grid = grid
+            .iter()
+            .map(|line| line.to_string())
+            .collect::<Vec<String>>();
+        grid[obstacle_position.y] = grid[obstacle_position.y]
+            .chars()
+            .enumerate()
+            .map(|(i, c)| if i == obstacle_position.x { '#' } else { c })
+            .collect::<String>();
 
         // Collect to the original format to conform with the function signature.
         let grid = grid.iter().map(|line| line.as_str()).collect::<Vec<&str>>();
 
-        let (path, hinderance) = predict_guard_path(guard_position, guard_direction, &grid);
-        assert_eq!(hinderance, Hinderance::Obstacle);
-        assert_eq!(path.steps.len(), 6);
+        let inf_res = walk_until_loop(guard_position, guard_direction, &grid, 100);
+        assert!(
+            inf_res.is_ok(),
+            "We should have encountered an infinite loop, but the result was {:?}",
+            inf_res
+        );
     }
 }
-
