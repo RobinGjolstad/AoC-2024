@@ -329,4 +329,3 @@ don't()asdfløjmul(1,2)ljøkadsfmul(1,2)ølahlsg
         assert_eq!(numbers.len(), 3);
     }
 }
-
