@@ -224,7 +224,7 @@ mod tests {
     }
 
     #[rstest]
-    #[case(6, Hinderance::Obstacle, Direction::Up, 
+    #[case(6, Hinderance::Obstacle, Direction::Up,
         &["....#.....",
           ".........#",
           "..........",
@@ -235,7 +235,7 @@ mod tests {
           "........#.",
           "#.........",
           "......#..."])]
-    #[case(6, Hinderance::OutOfBounds, Direction::Right, 
+    #[case(6, Hinderance::OutOfBounds, Direction::Right,
         &["....#.....",
           ".........#",
           "..........",
@@ -246,7 +246,7 @@ mod tests {
           "........#.",
           "#.........",
           "......#..."])]
-    #[case(3, Hinderance::Obstacle, Direction::Left, 
+    #[case(3, Hinderance::Obstacle, Direction::Left,
         &["....#.....",
           ".........#",
           "..........",
@@ -257,7 +257,7 @@ mod tests {
           "........#.",
           "#.........",
           "......#..."])]
-    #[case(4, Hinderance::OutOfBounds, Direction::Down, 
+    #[case(4, Hinderance::OutOfBounds, Direction::Down,
         &["....#.....",
           ".........#",
           "..........",
