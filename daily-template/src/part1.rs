@@ -8,9 +8,7 @@ mod tests {
 
     #[test]
     fn test_process() {
-        let input = r#"
-        
-        "#;
+        let input = "";
         assert_eq!(process(input), 0);
     }
 }
