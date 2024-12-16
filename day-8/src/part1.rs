@@ -1,26 +1,13 @@
 use std::collections::{HashMap, HashSet};
 
 use glam::IVec2;
-use nom::{
-    branch::alt,
-    bytes::complete::tag,
-    character::complete::{alphanumeric1, anychar, multispace0},
-    combinator::all_consuming,
-    multi::many1,
-    sequence::terminated,
-    AsChar, IResult, Parser,
-};
-use nom_locate::LocatedSpan;
 
 pub fn process(input: &str) -> usize {
     // Get size of grid.
     let y = input.lines().filter(|line| !line.is_empty()).count();
     let x = input.lines().next().unwrap().chars().count();
 
-    //let (_, antennas) = parse_grid(Span::new(input)).unwrap();
     let antennas = parse_grid_manual(input);
-
-    // println!("{:#?}", antennas);
 
     let sorted_antennas = sort_antennas(&antennas);
     let antinodes = find_antinodes(&sorted_antennas);
@@ -37,48 +24,7 @@ pub fn process(input: &str) -> usize {
         .map(|(_, pos)| *pos)
         .collect::<HashSet<_>>();
 
-    // DEBUG: Create a grid of the input and input the antinodes.
-    // Print the combinations of antennas and antinodes.
-    // This means that we can visually inspect the grid and see if the antinodes are correct.
-    let chars = sorted_antennas.keys().cloned().collect::<Vec<_>>();
-
-    for ch in chars {
-        let mut grid = vec![vec!['.'; x]; y];
-
-        // place antennas for this character.
-        for pos in sorted_antennas[&ch].iter() {
-            grid[pos.y as usize][pos.x as usize] = ch;
-        }
-
-        // place antinodes for this character.
-        for pos in antinodes_with_char
-            .iter()
-            .filter_map(|(c, p)| if *c == ch { Some(p) } else { None })
-        {
-            grid[pos.y as usize][pos.x as usize] = '#';
-        }
-
-        // println!("Antennas for '{}':", ch);
-        for row in grid.iter() {
-            // println!("{}", row.iter().collect::<String>());
-        }
-    }
-
     antinodes.len()
-}
-
-// Stealing some ideas from Chris Biscardi's Advent of Code 2023 solutions to more easily handle
-// grid parsing.
-
-// Types to use with nom_locate
-type Span<'a> = LocatedSpan<&'a str>;
-type SpanIVec2<'a> = LocatedSpan<&'a str, IVec2>;
-
-fn with_xy(span: Span) -> SpanIVec2 {
-    // column/location are 1-indexed
-    let x = span.get_column() as i32 - 1;
-    let y = span.location_line() as i32 - 1;
-    span.map_extra(|_| IVec2::new(x, y))
 }
 
 fn parse_grid_manual(input: &str) -> HashMap<IVec2, char> {
@@ -91,37 +37,6 @@ fn parse_grid_manual(input: &str) -> HashMap<IVec2, char> {
         }
     }
     grid
-}
-
-fn parse_grid(span: Span) -> IResult<Span, HashMap<IVec2, char>> {
-    let (input, output) = all_consuming(many1(terminated(
-        alt((
-            alphanumeric1.map(with_xy).map(|span| {
-                (
-                    span,
-                    span.fragment()
-                        .chars()
-                        .next()
-                        .expect("alphanumeric1 should have a char"),
-                )
-            }),
-            tag(".").map(with_xy).map(|span| (span, '.')),
-        )),
-        multispace0,
-    )))(span)?;
-
-    let res = output
-        .into_iter()
-        .filter_map(|(span, ch)| {
-            if ch.is_alphanum() {
-                Some((span.extra, ch))
-            } else {
-                None
-            }
-        })
-        .collect();
-
-    Ok((input, res))
 }
 
 fn sort_antennas(antennas: &HashMap<IVec2, char>) -> HashMap<char, Vec<IVec2>> {
