@@ -4,7 +4,7 @@ use glam::IVec2;
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{alphanumeric1, multispace0},
+    character::complete::{alphanumeric1, anychar, multispace0},
     combinator::all_consuming,
     multi::many1,
     sequence::terminated,
@@ -14,24 +14,55 @@ use nom_locate::LocatedSpan;
 
 pub fn process(input: &str) -> usize {
     // Get size of grid.
-    let y = input.lines().count();
+    let y = input.lines().filter(|line| !line.is_empty()).count();
     let x = input.lines().next().unwrap().chars().count();
 
-    let (_, antennas) = parse_grid(Span::new(input)).unwrap();
+    //let (_, antennas) = parse_grid(Span::new(input)).unwrap();
+    let antennas = parse_grid_manual(input);
+
+    // println!("{:#?}", antennas);
+
     let sorted_antennas = sort_antennas(&antennas);
     let antinodes = find_antinodes(&sorted_antennas);
 
     // Filter out antinodes that are outside the grid.
-    let antinodes = antinodes
+    let antinodes_with_char = antinodes
         .into_iter()
-        .filter(|(_, pos)| pos.x >= 0 && pos.x < x as i32 && pos.y >= 0 && pos.y < y as i32)
+        .filter(|(_, pos)| (0..x).contains(&(pos.x as usize)) && (0..y).contains(&(pos.y as usize)))
         .collect::<HashSet<_>>();
 
     // Filter out any overlapping antinodes.
-    let antinodes = antinodes
+    let antinodes = antinodes_with_char
         .iter()
         .map(|(_, pos)| *pos)
         .collect::<HashSet<_>>();
+
+    // DEBUG: Create a grid of the input and input the antinodes.
+    // Print the combinations of antennas and antinodes.
+    // This means that we can visually inspect the grid and see if the antinodes are correct.
+    let chars = sorted_antennas.keys().cloned().collect::<Vec<_>>();
+
+    for ch in chars {
+        let mut grid = vec![vec!['.'; x]; y];
+
+        // place antennas for this character.
+        for pos in sorted_antennas[&ch].iter() {
+            grid[pos.y as usize][pos.x as usize] = ch;
+        }
+
+        // place antinodes for this character.
+        for pos in antinodes_with_char
+            .iter()
+            .filter_map(|(c, p)| if *c == ch { Some(p) } else { None })
+        {
+            grid[pos.y as usize][pos.x as usize] = '#';
+        }
+
+        // println!("Antennas for '{}':", ch);
+        for row in grid.iter() {
+            // println!("{}", row.iter().collect::<String>());
+        }
+    }
 
     antinodes.len()
 }
@@ -48,6 +79,18 @@ fn with_xy(span: Span) -> SpanIVec2 {
     let x = span.get_column() as i32 - 1;
     let y = span.location_line() as i32 - 1;
     span.map_extra(|_| IVec2::new(x, y))
+}
+
+fn parse_grid_manual(input: &str) -> HashMap<IVec2, char> {
+    let mut grid = HashMap::new();
+    for (y, line) in input.lines().enumerate() {
+        for (x, ch) in line.chars().enumerate() {
+            if ch.is_alphanumeric() {
+                grid.insert(IVec2::new(x as i32, y as i32), ch);
+            }
+        }
+    }
+    grid
 }
 
 fn parse_grid(span: Span) -> IResult<Span, HashMap<IVec2, char>> {
@@ -158,10 +201,8 @@ mod tests {
         ].iter().cloned().collect()
     )]
     fn test_parse_grid(#[case] input: &str, #[case] expected: HashMap<IVec2, char>) {
-        let (input, result) = parse_grid(Span::new(input)).unwrap();
-
-        assert_eq!(result, expected);
-        assert!(input.fragment().is_empty());
+        let res = parse_grid_manual(input);
+        assert_eq!(res, expected, "Expected: {:#?}, Got: {:#?}", expected, res);
     }
 
     #[rstest]
