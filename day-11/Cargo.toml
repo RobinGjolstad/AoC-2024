@@ -1,0 +1,10 @@
+[package]
+name = "day-11"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rstest.workspace = true
+rayon.workspace = true
+# Inherit dependencies from workspace
+# <dependency>.workspace = true
