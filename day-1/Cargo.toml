@@ -7,3 +7,4 @@ edition = "2021"
 # Inherit dependencies from workspace
 # <dependency>.workspace = true
 rayon.workspace = true
+clap = { version = "4.5.53", features = ["derive"] }
